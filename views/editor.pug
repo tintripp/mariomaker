@@ -2,7 +2,11 @@ extends layout
 
 block content 
     h1 EDITOR
-    canvas#editor(width='400px' height='400px')
+    .row
+        .col
+            canvas#editor(width='512px' height='488px')
+        .col 
+            p i am on the right column
 
 append scripts 
     script(src='/js/editor.js') 
