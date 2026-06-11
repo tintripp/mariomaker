@@ -1,0 +1,17 @@
+*{
+    box-sizing: border-box;
+}
+canvas{
+    border: 1px solid black;
+}
+
+html{
+    background-color: gray;
+}
+
+body{
+    width: 768px;
+    margin: auto;
+    background-color: white;
+    padding: 0px 10px;
+}

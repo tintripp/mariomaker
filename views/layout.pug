@@ -1,0 +1,14 @@
+html 
+    head 
+        block head
+            link(rel="stylesheet", href="/css/style.css")
+    body 
+        #header
+            block header
+                include _header
+        #content
+            block content
+        #footer 
+            block footer
+
+        block scripts 
