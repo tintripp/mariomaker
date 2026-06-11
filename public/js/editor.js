@@ -1,6 +1,35 @@
 const TILE_SIZE = 16;
 const GRAVITY = 0.1;
 
+function flipAndDrawImage(
+    ctx,
+    image,
+    sx, sy, sw, sh,
+    x, y, w, h,
+    flipH = false,
+    flipV = false
+) {
+    ctx.save();
+
+    ctx.translate(
+        flipH ? x + w : x,
+        flipV ? y + h : y
+    );
+
+    ctx.scale(
+        flipH ? -1 : 1,
+        flipV ? -1 : 1
+    );
+
+    ctx.drawImage(
+        image,
+        sx, sy, sw, sh,
+        0, 0, w, h
+    );
+
+    ctx.restore();
+}
+
 class Game {
     static instance;
 
@@ -139,6 +168,47 @@ class CollisionRect{
     }
 }
 
+class Sprite{
+    constructor(path){
+        this.image = new Image();
+        this.image.src = path;
+
+        this.animations = {};
+        this.animName = null;
+        this.frame = 0;
+    }
+
+    get animation(){
+        return this.animations[this.animName];
+    }
+
+    addAnimation(name, frames){
+        this.animations[name] = frames;
+    }
+
+    setAnimation(name){
+        this.animName = name;
+    }
+
+    nextFrame(){
+        this.frame = (this.frame + 1) % this.animation.length;
+    }
+
+    draw(ctx, x, y, flipH, flipV){
+        const frameData = this.animation[this.frame];
+        
+        flipAndDrawImage(
+            ctx, this.image, 
+            frameData['x'],
+            frameData['y'],
+            x, y, 
+            frameData['w'],
+            frameData['h'],
+            flipH, flipV
+        );
+    }
+}
+
 class Player extends GameObject{
     constructor(x,y){
         super();
@@ -152,15 +222,13 @@ class Player extends GameObject{
         this.hitbox = new CollisionRect(this, 10, 16);
         this.hitbox.offset.x = 3;
 
-        /*
-        this.sprite = new Sprite(src);
+        this.sprite = new Sprite('images/client/mario.png');
         this.sprite.addAnimation('idle', 
             [
                 {x: 0, y: 0, w: 16, h: 32}
             ]
         );
         this.sprite.setAnimation('idle');
-        */
     }
 
     keyDown(key){
@@ -207,8 +275,9 @@ class Player extends GameObject{
         }
     }
     draw(ctx) {
-        ctx.fillStyle = 'red';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.hitbox.draw(ctx);
+        this.sprite.draw(ctx, this.pos.x, this.pos.y, false, false);
     }
 }
 
