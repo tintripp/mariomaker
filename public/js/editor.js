@@ -15,8 +15,17 @@ class Game {
         this.ctx.scale(2, 2);
         this.ctx.imageSmoothingEnabled = false;
 
-        this.keysDown = {};
-        this.mouseState = {};
+        this.keysDown = new Set();
+        addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            this.keysDown.add(e.key);
+            for (const o of this.objects){ o.keyDown(e.key); }
+        });
+        addEventListener('keyup', (e) => {
+            if (e.repeat) return;
+            this.keysDown.delete(e.key);
+            for (const o of this.objects){ o.keyUp(e.key); }
+        });
 
         this.objects = [
             new Player(2, 4),
@@ -29,6 +38,9 @@ class Game {
             new Tile(1, 15),
             new Tile(2, 15),
             new Tile(3, 15),
+            new Tile(4, 13),
+            new Tile(6, 14),
+            new Tile(6, 10),
         ];
     }
 
@@ -63,8 +75,8 @@ class Game {
 class GameObject {
     constructor(){}
 
-    keyDown(event){}
-    keyUp(event){}
+    keyDown(key){}
+    keyUp(key){}
 
     update(dt) {}
     draw(ctx) {}
@@ -76,14 +88,33 @@ class CollisionRect{
         this.w = w;
         this.h = h;
         this.offset = {x: 0, y: 0};
+        this.terminalVel = 1;
     }
 
     get x(){
         return this.owner.pos.x + this.offset.x;
     }
-
     get y(){
         return this.owner.pos.y + this.offset.y;
+    }
+    set x(v){
+        this.owner.pos.x = v - this.offset.x;
+    }
+    set y(v){
+        this.owner.pos.y = v - this.offset.y;
+    }
+
+    get collisions(){
+        let c = [];
+
+        for (const obj of Game.instance.objects){
+            if (obj.hitbox == this) continue;
+            if (!obj.hitbox) continue;
+            if (this.collidesWith(obj.hitbox))
+                c.push(obj);
+        }
+
+        return c;
     }
 
     collidesWith(that){
@@ -93,6 +124,14 @@ class CollisionRect{
             this.y + this.h > that.y && 
             this.y < that.y + that.h
         );
+    }
+
+    isGrounded(){
+        this.y += 1;
+        const grounded = this.collisions.length > 0;
+        this.y -= 1;
+
+        return grounded;
     }
 
     draw(ctx){
@@ -124,9 +163,48 @@ class Player extends GameObject{
         */
     }
 
+    keyDown(key){
+        if (this.hitbox.isGrounded()){
+            if (key == 'w') 
+                this.vel.y = -3;
+        }
+    }
+
     update(dt) {
         this.vel.y += GRAVITY;
         this.pos.y += this.vel.y;
+        for (const collision of this.hitbox.collisions){
+            if (this.vel.y > 0){
+                // hit floor
+                this.hitbox.y = collision.hitbox.y - this.hitbox.h;
+                this.vel.y = 0;
+            } 
+            if (this.vel.y < 0){
+                // hit ceiling
+                this.hitbox.y = collision.hitbox.y + collision.hitbox.h;
+                this.vel.y = 0;
+            }
+        }
+
+        this.vel.x = 0;
+        if (Game.instance.keysDown.has('d'))
+            this.vel.x = 1;
+        if (Game.instance.keysDown.has('a'))
+            this.vel.x = -1;
+
+        this.pos.x += this.vel.x;
+        for (const collision of this.hitbox.collisions){
+            if (this.vel.x > 0){
+                // r wall
+                this.hitbox.x = collision.hitbox.x - this.hitbox.w;
+                this.vel.x = 0;
+            } 
+            if (this.vel.x < 0){
+                // l wall
+                this.hitbox.x = collision.hitbox.x + collision.hitbox.w;
+                this.vel.x = 0;
+            }
+        }
     }
     draw(ctx) {
         ctx.fillStyle = 'red';
