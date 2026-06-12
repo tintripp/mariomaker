@@ -1,19 +1,24 @@
 const TILE_SIZE = 16;
 const GRAVITY = 0.1;
 
+const Direction = {
+    LEFT: 1,
+    RIGHT: 0,
+};
+
 function flipAndDrawImage(
     ctx,
     image,
     sx, sy, sw, sh,
-    x, y, w, h,
+    dx, dy, dw, dh,
     flipH = false,
     flipV = false
 ) {
     ctx.save();
 
     ctx.translate(
-        flipH ? x + w : x,
-        flipV ? y + h : y
+        flipH ? dx + dw : dx,
+        flipV ? dy + dh : dy
     );
 
     ctx.scale(
@@ -24,7 +29,7 @@ function flipAndDrawImage(
     ctx.drawImage(
         image,
         sx, sy, sw, sh,
-        0, 0, w, h
+        0, 0, dw, dh
     );
 
     ctx.restore();
@@ -175,7 +180,12 @@ class Sprite{
 
         this.animations = {};
         this.animName = null;
-        this.frame = 0;
+
+        this.framePos = 0;
+    }
+
+    get frame(){
+        return Math.floor(this.framePos) % this.animation.length;
     }
 
     get animation(){
@@ -190,20 +200,14 @@ class Sprite{
         this.animName = name;
     }
 
-    nextFrame(){
-        this.frame = (this.frame + 1) % this.animation.length;
-    }
-
     draw(ctx, x, y, flipH, flipV){
         const frameData = this.animation[this.frame];
         
-        flipAndDrawImage(
-            ctx, this.image, 
-            frameData['x'],
-            frameData['y'],
-            x, y, 
-            frameData['w'],
-            frameData['h'],
+        flipAndDrawImage(ctx, this.image,
+            frameData.x, frameData.y,
+            frameData.w, frameData.h,
+            x, y,
+            frameData.w, frameData.h,
             flipH, flipV
         );
     }
@@ -218,17 +222,30 @@ class Player extends GameObject{
             y: y * TILE_SIZE - (TILE_SIZE / 2)
         };
         this.vel = {x: 0, y: 0};
+        this.dir = Direction.RIGHT;
 
         this.hitbox = new CollisionRect(this, 10, 16);
         this.hitbox.offset.x = 3;
 
         this.sprite = new Sprite('images/client/mario.png');
-        this.sprite.addAnimation('idle', 
-            [
-                {x: 0, y: 0, w: 16, h: 32}
-            ]
-        );
-        this.sprite.setAnimation('idle');
+        this.sprite.addAnimation('idle', [
+            {x: 0, y: 0, w: 16, h: 16}
+        ]);
+        this.sprite.addAnimation('walk', [
+            {"x":16,"y":0,"w":16,"h":16},
+            {"x":32,"y":0,"w":16,"h":16},
+            {"x":48,"y":0,"w":16,"h":16}
+        ]);
+        this.sprite.setAnimation('walk');
+
+        this.jumpHeightMin = 4.1;
+        this.jumpHeightMax = 4.5;
+        this.jumpHeight = this.jumpHeightMin;
+
+        this.acceleration = 0.12;
+        this.deceleration = 0.1;
+        this.walkSpeed = 1;
+        this.runSpeed = 2.6;
     }
 
     keyDown(key){
@@ -238,9 +255,8 @@ class Player extends GameObject{
         }
     }
 
-    update(dt) {
-        this.vel.y += GRAVITY;
-        this.pos.y += this.vel.y;
+    move(dx, dy){
+        this.pos.y += dy;
         for (const collision of this.hitbox.collisions){
             if (this.vel.y > 0){
                 // hit floor
@@ -254,13 +270,7 @@ class Player extends GameObject{
             }
         }
 
-        this.vel.x = 0;
-        if (Game.instance.keysDown.has('d'))
-            this.vel.x = 1;
-        if (Game.instance.keysDown.has('a'))
-            this.vel.x = -1;
-
-        this.pos.x += this.vel.x;
+        this.pos.x += dx;
         for (const collision of this.hitbox.collisions){
             if (this.vel.x > 0){
                 // r wall
@@ -273,6 +283,40 @@ class Player extends GameObject{
                 this.vel.x = 0;
             }
         }
+    }
+
+    update(dt) {
+        this.vel.y += GRAVITY;
+
+        /*/this.vel.x = 0;
+        if (Game.instance.keysDown.has('d'))
+            this.vel.x = 1;
+        if (Game.instance.keysDown.has('a'))
+            this.vel.x = -1;//*/
+        //accelerate
+        const direction = this.dir * 2 - 1;
+        const speed = 
+            Game.instance.keysDown.has('shift')? 
+              this.runSpeed
+            : this.walkSpeed;
+
+        if(direction){
+            this.xVelocity += direction * this.acceleration;
+            if (Math.abs(this.xVelocity) >= maxSpeed){
+                this.xVelocity = maxSpeed * direction;
+            }
+        //decelerate
+        }else{
+            this.xVelocity += this.deceleration * ((this.direction * 2)-1);
+            
+            if ((this.xVelocity/Math.abs(this.xVelocity)) != -((this.direction * 2)-1)){
+                this.xVelocity = 0;
+            }
+        }//*/
+
+        this.sprite.framePos += 0.1;
+
+        this.move(this.vel.x, this.vel.y);
     }
     draw(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
