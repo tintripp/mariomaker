@@ -62,25 +62,40 @@ class Game {
         this.objects = [
             new Player(2, 4),
 
-            new Tile(0, 14),
-            new Tile(1, 14),
-            new Tile(2, 14),
-            new Tile(3, 14),
-            new Tile(4, 14),
-            new Tile(5, 14),
-            new Tile(6, 14),
-            new Tile(7, 14),
-            new Tile(8, 14),
-            new Tile(9, 14),
-            new Tile(10, 14),
-            new Tile(11, 14),
-            new Tile(12, 14),
-            new Tile(13, 14),
+            new GroundBlock(0, 14),
+            new GroundBlock(1, 14),
+            new GroundBlock(2, 14),
+            new GroundBlock(3, 14),
+            new GroundBlock(4, 14),
+            new GroundBlock(5, 14),
+            new GroundBlock(6, 14),
+            new GroundBlock(7, 14),
+            new GroundBlock(8, 14),
+            new GroundBlock(9, 14),
+            new GroundBlock(10, 14),
+            new GroundBlock(11, 14),
+            new GroundBlock(12, 14),
+            new GroundBlock(13, 14),
+            new GroundBlock(0, 15),
+            new GroundBlock(1, 15),
+            new GroundBlock(2, 15),
+            new GroundBlock(3, 15),
+            new GroundBlock(4, 15),
+            new GroundBlock(5, 15),
+            new GroundBlock(6, 15),
+            new GroundBlock(7, 15),
+            new GroundBlock(8, 15),
+            new GroundBlock(9, 15),
+            new GroundBlock(10, 15),
+            new GroundBlock(11, 15),
+            new GroundBlock(12, 15),
+            new GroundBlock(13, 15),
 
-            new Tile(14, 13),
-            new Tile(14, 12),
-            new Tile(14, 11),
-            new Tile(14, 10),
+
+            new GroundBlock(14, 13),
+            new GroundBlock(14, 12),
+            new GroundBlock(14, 11),
+            new GroundBlock(14, 10),
         ];
     }
 
@@ -239,6 +254,7 @@ class Player extends GameObject{
         this.sprite.addAnimation('idle', [{x:0,y:0,w:16,h:16}]);
         this.sprite.addAnimation('skid', [{x:64,y:0,w:16,h:16}]);
         this.sprite.addAnimation('jump', [{x:80,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('die', [{x:112,y:0,w:16,h:16}]);
         this.sprite.addAnimation('walk', [
             {x:16,y:0,w:16,h:16},
             {x:32,y:0,w:16,h:16},
@@ -310,8 +326,10 @@ class Player extends GameObject{
         if (isKeyDown('KeyA')) moveFactor -= 1;
         if (isKeyDown('KeyD')) moveFactor += 1;
 
-        if (moveFactor < 0) this.dir = Direction.LEFT;
-        if (moveFactor > 0) this.dir = Direction.RIGHT;
+        if (this.hitbox.isGrounded()){
+            if (moveFactor < 0) this.dir = Direction.LEFT;
+            if (moveFactor > 0) this.dir = Direction.RIGHT;
+        }
 
         const speed = isKeyDown('ShiftLeft')
             ? this.runSpeed
@@ -369,10 +387,24 @@ class Tile extends GameObject{
         this.hitbox = new CollisionRect(this, TILE_SIZE, TILE_SIZE);
     }
 
-    update(dt) {}
     draw(ctx) {
         ctx.fillStyle = 'black';
         this.hitbox.draw(ctx);
+    }
+}
+
+class GroundBlock extends Tile{
+    constructor(x,y){
+        super(x,y);
+        this.sprite = new Sprite('images/client/blocks.png');
+        this.sprite.addAnimation('idle', [{x:0,y:0,w:16,h:16}]);
+        this.sprite.setAnimation('idle');
+    }
+
+    update(dt) {}
+    draw(ctx) {
+        super.draw(ctx);
+        this.sprite.draw(ctx, this.pos.x, this.pos.y);
     }
 }
 
