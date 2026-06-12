@@ -131,12 +131,25 @@ class Level {
             new GroundBlock(14, 11),
             new GroundBlock(14, 10),
         ];
+
+        // todo: level length + camera
+        this.length = 256; //pixels
+        this.cam = 0;
+
+        //camBoundsRight = this.length - screenWidth
     }
 
     update(dt) {
         for (const obj of this.objects){
             obj.update(dt);
         }
+
+        /*if (camX <= camBoundsLeft){
+            camX = camBoundsLeft;
+        }
+        if (camX>=camBoundsRight){
+            camX = camBoundsRight;
+        }*/
     }
 
     draw(ctx) {
