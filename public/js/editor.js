@@ -47,20 +47,54 @@ class Game {
         this.ctx.scale(2, 2);
         this.ctx.imageSmoothingEnabled = false;
 
+        this.level = new Level();
+
         this.keysDown = new Set();
         addEventListener('keydown', (e) => {
             if (e.repeat) return;
             this.keysDown.add(e.code);
-            for (const o of this.objects){ o.keyDown(e.code); }
+            for (const o of this.level.objects){ o.keyDown(e.code); }
         });
         addEventListener('keyup', (e) => {
             if (e.repeat) return;
             this.keysDown.delete(e.code);
-            for (const o of this.objects){ o.keyUp(e.code); }
+            for (const o of this.level.objects){ o.keyUp(e.code); }
         });
 
+    }
+
+    update(dt) {
+        this.level.update(dt);
+    }
+
+    draw() {
+        this.ctx.fillStyle = 'rgb(151, 141, 250)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+        this.level.draw(this.ctx);
+    }
+
+    loop = (timestamp) => {
+        const dt = timestamp - this.lastTime;
+        this.lastTime = timestamp;
+
+        this.update(dt);
+        this.draw();
+
+        requestAnimationFrame(this.loop);
+    }
+
+    start() {
+        requestAnimationFrame(this.loop);
+    }
+}
+
+class Level {
+    constructor(){
         this.objects = [
             new Player(2, 4),
+            new Player(3, 4),
+            new Player(3, 3),
 
             new GroundBlock(0, 14),
             new GroundBlock(1, 14),
@@ -105,27 +139,10 @@ class Game {
         }
     }
 
-    draw() {
-        this.ctx.fillStyle = 'rgb(151, 141, 250)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
+    draw(ctx) {
         for (const obj of this.objects){
-            obj.draw(this.ctx);
+            obj.draw(ctx);
         }
-    }
-
-    loop = (timestamp) => {
-        const dt = timestamp - this.lastTime;
-        this.lastTime = timestamp;
-
-        this.update(dt);
-        this.draw();
-
-        requestAnimationFrame(this.loop);
-    }
-
-    start() {
-        requestAnimationFrame(this.loop);
     }
 }
 
@@ -164,7 +181,7 @@ class CollisionRect{
     get collisions(){
         let c = [];
 
-        for (const obj of Game.instance.objects){
+        for (const obj of Game.instance.level.objects){
             if (obj.hitbox == this) continue;
             if (!obj.hitbox) continue;
             if (this.collidesWith(obj.hitbox))
@@ -356,10 +373,11 @@ class Player extends GameObject{
         }
         if (this.sprite.animName != 'jump'){
             this.sprite.setAnimation('idle');
-            if (this.vel.x) 
+            if (this.vel.x) {
                 this.sprite.setAnimation('walk');
-            if (moveFactor && Math.sign(this.vel.x) != moveFactor) 
-                this.sprite.setAnimation('skid');
+                if (moveFactor && Math.sign(this.vel.x) != moveFactor) 
+                    this.sprite.setAnimation('skid');
+            }
 
             if (this.sprite.animName == 'walk')
                 this.sprite.framePos += Math.abs(this.vel.x) / 8;
