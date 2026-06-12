@@ -6,33 +6,30 @@ const Direction = {
     RIGHT: 0,
 };
 
-function flipAndDrawImage(
-    ctx,
-    image,
+function flipAndDrawImage(ctx, image,
     sx, sy, sw, sh,
     dx, dy, dw, dh,
-    flipH = false,
-    flipV = false
+    flipH = false, flipV = false
 ) {
     ctx.save();
-
     ctx.translate(
         flipH ? dx + dw : dx,
         flipV ? dy + dh : dy
     );
-
     ctx.scale(
         flipH ? -1 : 1,
         flipV ? -1 : 1
     );
-
     ctx.drawImage(
         image,
         sx, sy, sw, sh,
         0, 0, dw, dh
     );
-
     ctx.restore();
+}
+
+function isKeyDown(code){
+    return Game.instance.keysDown.has(code);
 }
 
 class Game {
@@ -52,13 +49,13 @@ class Game {
         this.keysDown = new Set();
         addEventListener('keydown', (e) => {
             if (e.repeat) return;
-            this.keysDown.add(e.key);
-            for (const o of this.objects){ o.keyDown(e.key); }
+            this.keysDown.add(e.code);
+            for (const o of this.objects){ o.keyDown(e.code); }
         });
         addEventListener('keyup', (e) => {
             if (e.repeat) return;
-            this.keysDown.delete(e.key);
-            for (const o of this.objects){ o.keyUp(e.key); }
+            this.keysDown.delete(e.code);
+            for (const o of this.objects){ o.keyUp(e.code); }
         });
 
         this.objects = [
@@ -68,13 +65,16 @@ class Game {
             new Tile(1, 14),
             new Tile(2, 14),
             new Tile(3, 14),
-            new Tile(0, 15),
-            new Tile(1, 15),
-            new Tile(2, 15),
-            new Tile(3, 15),
-            new Tile(4, 13),
+            new Tile(4, 14),
+            new Tile(5, 14),
             new Tile(6, 14),
-            new Tile(6, 10),
+            new Tile(7, 14),
+            new Tile(8, 14),
+            new Tile(9, 14),
+            new Tile(10, 14),
+            new Tile(11, 14),
+            new Tile(12, 14),
+            new Tile(13, 14),
         ];
     }
 
@@ -109,8 +109,8 @@ class Game {
 class GameObject {
     constructor(){}
 
-    keyDown(key){}
-    keyUp(key){}
+    keyDown(code){}
+    keyUp(code){}
 
     update(dt) {}
     draw(ctx) {}
@@ -243,14 +243,14 @@ class Player extends GameObject{
         this.jumpHeight = this.jumpHeightMin;
 
         this.acceleration = 0.12;
-        this.deceleration = 0.1;
+        this.deceleration = 0.07;
         this.walkSpeed = 1;
         this.runSpeed = 2.6;
     }
 
-    keyDown(key){
+    keyDown(code){
         if (this.hitbox.isGrounded()){
-            if (key == 'w') 
+            if (code == 'KeyW') 
                 this.vel.y = -3;
         }
     }
@@ -288,40 +288,42 @@ class Player extends GameObject{
     update(dt) {
         this.vel.y += GRAVITY;
 
-        /*/this.vel.x = 0;
-        if (Game.instance.keysDown.has('d'))
-            this.vel.x = 1;
-        if (Game.instance.keysDown.has('a'))
-            this.vel.x = -1;//*/
         //accelerate
-        const direction = this.dir * 2 - 1;
-        const speed = 
-            Game.instance.keysDown.has('shift')? 
-              this.runSpeed
+
+        let moveFactor = 0;
+
+        if (isKeyDown('KeyA')) moveFactor -= 1;
+        if (isKeyDown('KeyD')) moveFactor += 1;
+
+        if (moveFactor < 0) this.dir = Direction.LEFT;
+        if (moveFactor > 0) this.dir = Direction.RIGHT;
+
+        const speed = isKeyDown('ShiftLeft')
+            ? this.runSpeed
             : this.walkSpeed;
+        const targetSpeed = moveFactor * speed;
 
-        if(direction){
-            this.xVelocity += direction * this.acceleration;
-            if (Math.abs(this.xVelocity) >= maxSpeed){
-                this.xVelocity = maxSpeed * direction;
-            }
-        //decelerate
-        }else{
-            this.xVelocity += this.deceleration * ((this.direction * 2)-1);
-            
-            if ((this.xVelocity/Math.abs(this.xVelocity)) != -((this.direction * 2)-1)){
-                this.xVelocity = 0;
-            }
-        }//*/
+        const delta = targetSpeed - this.vel.x;
 
-        this.sprite.framePos += 0.1;
+        const rate =
+            Math.abs(targetSpeed) > Math.abs(this.vel.x)
+                ? this.acceleration
+                : this.deceleration;
+
+        this.vel.x += Math.sign(delta) *
+            Math.min(Math.abs(delta), rate);
+
+        this.sprite.framePos += Math.abs(this.vel.x) / 10;
 
         this.move(this.vel.x, this.vel.y);
     }
     draw(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.hitbox.draw(ctx);
-        this.sprite.draw(ctx, this.pos.x, this.pos.y, false, false);
+        this.sprite.draw(ctx, 
+            this.pos.x, this.pos.y, 
+            this.dir
+        );
     }
 }
 
