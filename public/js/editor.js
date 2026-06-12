@@ -1,5 +1,6 @@
 const TILE_SIZE = 16;
-const GRAVITY = 0.1;
+const JUMP_GRAVITY = 0.12;
+const GRAVITY = 0.36;
 
 const Direction = {
     LEFT: 1,
@@ -75,6 +76,11 @@ class Game {
             new Tile(11, 14),
             new Tile(12, 14),
             new Tile(13, 14),
+
+            new Tile(14, 13),
+            new Tile(14, 12),
+            new Tile(14, 11),
+            new Tile(14, 10),
         ];
     }
 
@@ -85,7 +91,9 @@ class Game {
     }
 
     draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = 'rgb(151, 141, 250)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
         for (const obj of this.objects){
             obj.draw(this.ctx);
         }
@@ -228,19 +236,18 @@ class Player extends GameObject{
         this.hitbox.offset.x = 3;
 
         this.sprite = new Sprite('images/client/mario.png');
-        this.sprite.addAnimation('idle', [
-            {x: 0, y: 0, w: 16, h: 16}
-        ]);
+        this.sprite.addAnimation('idle', [{x:0,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('skid', [{x:64,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('jump', [{x:80,y:0,w:16,h:16}]);
         this.sprite.addAnimation('walk', [
-            {"x":16,"y":0,"w":16,"h":16},
-            {"x":32,"y":0,"w":16,"h":16},
-            {"x":48,"y":0,"w":16,"h":16}
+            {x:16,y:0,w:16,h:16},
+            {x:32,y:0,w:16,h:16},
+            {x:48,y:0,w:16,h:16}
         ]);
         this.sprite.setAnimation('walk');
 
-        this.jumpHeightMin = 4.1;
+        this.jumpHeightMin = 4;
         this.jumpHeightMax = 4.5;
-        this.jumpHeight = this.jumpHeightMin;
 
         this.acceleration = 0.12;
         this.deceleration = 0.07;
@@ -250,8 +257,13 @@ class Player extends GameObject{
 
     keyDown(code){
         if (this.hitbox.isGrounded()){
-            if (code == 'KeyW') 
-                this.vel.y = -3;
+            if (code == 'KeyW') {
+                if (Math.abs(this.vel.x) >= this.runSpeed - 0.1)
+                    this.vel.y = -this.jumpHeightMax;
+                else
+                    this.vel.y = -this.jumpHeightMin;
+                this.sprite.setAnimation('jump');
+            }
         }
     }
 
@@ -286,10 +298,13 @@ class Player extends GameObject{
     }
 
     update(dt) {
-        this.vel.y += GRAVITY;
+        if (isKeyDown('KeyW') && this.vel.y < 0)
+            this.vel.y += JUMP_GRAVITY;
+        else
+            this.vel.y += GRAVITY;
 
-        //accelerate
 
+        //movement
         let moveFactor = 0;
 
         if (isKeyDown('KeyA')) moveFactor -= 1;
@@ -312,16 +327,29 @@ class Player extends GameObject{
 
         this.vel.x += Math.sign(delta) *
             Math.min(Math.abs(delta), rate);
-
-        this.sprite.framePos += Math.abs(this.vel.x) / 10;
-        this.sprite.setAnimation('idle');
-        if (this.vel.x) this.sprite.setAnimation('walk');
+        //movement
 
         this.move(this.vel.x, this.vel.y);
+
+        if (this.sprite.animName == 'jump'){
+            if (this.hitbox.isGrounded()){
+                this.sprite.setAnimation('idle');
+            }
+        }
+        if (this.sprite.animName != 'jump'){
+            this.sprite.setAnimation('idle');
+            if (this.vel.x) 
+                this.sprite.setAnimation('walk');
+            if (moveFactor && Math.sign(this.vel.x) != moveFactor) 
+                this.sprite.setAnimation('skid');
+
+            if (this.sprite.animName == 'walk')
+                this.sprite.framePos += Math.abs(this.vel.x) / 8;
+        }
     }
     draw(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        this.hitbox.draw(ctx);
+        //this.hitbox.draw(ctx);
         this.sprite.draw(ctx, 
             this.pos.x, this.pos.y, 
             this.dir
