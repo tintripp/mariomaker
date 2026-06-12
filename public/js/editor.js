@@ -314,6 +314,8 @@ class Player extends GameObject{
             Math.min(Math.abs(delta), rate);
 
         this.sprite.framePos += Math.abs(this.vel.x) / 10;
+        this.sprite.setAnimation('idle');
+        if (this.vel.x) this.sprite.setAnimation('walk');
 
         this.move(this.vel.x, this.vel.y);
     }
