@@ -192,34 +192,43 @@ class CollisionRect{
         this.owner.pos.y = v - this.offset.y;
     }
 
-    get collisions(){
+    getCollisions(offX = 0, offY = 0){
         let c = [];
 
         for (const obj of Game.instance.level.objects){
             if (obj.hitbox == this) continue;
             if (!obj.hitbox) continue;
-            if (this.collidesWith(obj.hitbox))
+            if (this.collidesWith(obj.hitbox, offX, offY))
                 c.push(obj);
         }
 
         return c;
     }
 
-    collidesWith(that){
+    collidesWith(that, offX = 0, offY = 0){
+        const offs = {
+            x: this.x + offX,
+            y: this.y + offY
+        };
+        
         return (
-            this.x + this.w > that.x && 
-            this.x < that.x + that.w && 
-            this.y + this.h > that.y && 
-            this.y < that.y + that.h
+            offs.x + this.w > that.x && 
+            offs.x < that.x + that.w && 
+            offs.y + this.h > that.y && 
+            offs.y < that.y + that.h
         );
     }
 
     isGrounded(){
-        this.y += 1;
-        const grounded = this.collisions.length > 0;
-        this.y -= 1;
+        return this.getCollisions(0, 1).length > 0;
+    }
 
-        return grounded;
+    isAgainstLeftWall(){
+        return this.getCollisions(-1, 0).length > 0;
+    }
+
+    isAgainstRightWall(){
+        return this.getCollisions(1, 0).length > 0;
     }
 
     draw(ctx){
@@ -278,7 +287,7 @@ class Entity extends GameObject{
 
     move(dx, dy){
         this.pos.y += dy;
-        for (const collision of this.hitbox.collisions){
+        for (const collision of this.hitbox.getCollisions()){
             if (this.vel.y > 0){
                 // hit floor
                 this.hitbox.y = collision.hitbox.y - this.hitbox.h;
@@ -292,7 +301,7 @@ class Entity extends GameObject{
         }
 
         this.pos.x += dx;
-        for (const collision of this.hitbox.collisions){
+        for (const collision of this.hitbox.getCollisions()){
             if (this.vel.x > 0){
                 // r wall
                 this.hitbox.x = collision.hitbox.x - this.hitbox.w;
@@ -436,10 +445,8 @@ class Goomba extends Entity{
 
         this.hitbox = new CollisionRect(this, 10, 16);
         this.hitbox.offset.x = 3;
-        
-        this.dir = Direction.RIGHT;
 
-        this.speed = 1;
+        this.speed = 0.7;
 
         this.sprite = new Sprite('images/client/enemies.png');
         this.sprite.addAnimation('die', [{x:32,y:0,w:16,h:16}]);
@@ -452,16 +459,27 @@ class Goomba extends Entity{
 
     updateVelocities(dt){
         this.vel.y += GRAVITY;
-
         this.vel.x = (!this.dir * 2 - 1) * this.speed;
+    }
+
+    updatePhysics(dt){
+        super.updatePhysics(dt);
+        
+        if (this.hitbox.isAgainstLeftWall())
+            this.dir = Direction.RIGHT;
+        if (this.hitbox.isAgainstRightWall())
+            this.dir = Direction.LEFT;
+    }
+
+    updateAnimations(dt){
+        this.sprite.framePos += 0.03;
     }
 
     draw(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         this.hitbox.draw(ctx);
         this.sprite.draw(ctx, 
-            this.pos.x, this.pos.y, 
-            this.dir
+            this.pos.x, this.pos.y
         );
     }
 }
