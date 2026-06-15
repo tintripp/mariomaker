@@ -95,6 +95,7 @@ class Level {
             new Player(2, 4),
             new Player(3, 4),
             new Player(3, 3),
+            new Goomba(6, 3),
 
             new GroundBlock(0, 14),
             new GroundBlock(1, 14),
@@ -369,20 +370,20 @@ class Player extends Entity{
 
 
         //movement
-        let moveFactor = 0;
+        this.moveFactor = 0;
 
-        if (isKeyDown('KeyA')) moveFactor -= 1;
-        if (isKeyDown('KeyD')) moveFactor += 1;
+        if (isKeyDown('KeyA')) this.moveFactor -= 1;
+        if (isKeyDown('KeyD')) this.moveFactor += 1;
 
         if (this.hitbox.isGrounded()){
-            if (moveFactor < 0) this.dir = Direction.LEFT;
-            if (moveFactor > 0) this.dir = Direction.RIGHT;
+            if (this.moveFactor < 0) this.dir = Direction.LEFT;
+            if (this.moveFactor > 0) this.dir = Direction.RIGHT;
         }
 
         const speed = isKeyDown('ShiftLeft')
             ? this.runSpeed
             : this.walkSpeed;
-        const targetSpeed = moveFactor * speed;
+        const targetSpeed = this.moveFactor * speed;
 
         const delta = targetSpeed - this.vel.x;
 
@@ -405,8 +406,10 @@ class Player extends Entity{
             this.sprite.setAnimation('idle');
             if (this.vel.x) {
                 this.sprite.setAnimation('walk');
-                if (moveFactor && Math.sign(this.vel.x) != moveFactor) 
-                    this.sprite.setAnimation('skid');
+
+                if (this.moveFactor)
+                    if (Math.sign(this.vel.x) != this.moveFactor) 
+                        this.sprite.setAnimation('skid');
             }
 
             if (this.sprite.animName == 'walk')
@@ -417,6 +420,45 @@ class Player extends Entity{
     draw(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         //this.hitbox.draw(ctx);
+        this.sprite.draw(ctx, 
+            this.pos.x, this.pos.y, 
+            this.dir
+        );
+    }
+}
+
+class Goomba extends Entity{
+    constructor(x,y){
+        super(
+            x * TILE_SIZE, 
+            y * TILE_SIZE - (TILE_SIZE / 2)
+        );
+
+        this.hitbox = new CollisionRect(this, 10, 16);
+        this.hitbox.offset.x = 3;
+        
+        this.dir = Direction.RIGHT;
+
+        this.speed = 1;
+
+        this.sprite = new Sprite('images/client/enemies.png');
+        this.sprite.addAnimation('die', [{x:32,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('walk', [
+            {x:0,y:0,w:16,h:16},
+            {x:16,y:0,w:16,h:16}
+        ]);
+        this.sprite.setAnimation('walk');
+    }
+
+    updateVelocities(dt){
+        this.vel.y += GRAVITY;
+
+        this.vel.x = (!this.dir * 2 - 1) * this.speed;
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        this.hitbox.draw(ctx);
         this.sprite.draw(ctx, 
             this.pos.x, this.pos.y, 
             this.dir
