@@ -266,51 +266,13 @@ class Sprite{
     }
 }
 
-class Player extends GameObject{
+class Entity extends GameObject{
     constructor(x,y){
         super();
 
-        this.pos = {
-            x: x * TILE_SIZE, 
-            y: y * TILE_SIZE - (TILE_SIZE / 2)
-        };
+        this.pos = {x, y};
         this.vel = {x: 0, y: 0};
-        this.dir = Direction.RIGHT;
-
-        this.hitbox = new CollisionRect(this, 10, 16);
-        this.hitbox.offset.x = 3;
-
-        this.sprite = new Sprite('images/client/mario.png');
-        this.sprite.addAnimation('idle', [{x:0,y:0,w:16,h:16}]);
-        this.sprite.addAnimation('skid', [{x:64,y:0,w:16,h:16}]);
-        this.sprite.addAnimation('jump', [{x:80,y:0,w:16,h:16}]);
-        this.sprite.addAnimation('die', [{x:112,y:0,w:16,h:16}]);
-        this.sprite.addAnimation('walk', [
-            {x:16,y:0,w:16,h:16},
-            {x:32,y:0,w:16,h:16},
-            {x:48,y:0,w:16,h:16}
-        ]);
-        this.sprite.setAnimation('walk');
-
-        this.jumpHeightMin = 4;
-        this.jumpHeightMax = 4.5;
-
-        this.acceleration = 0.12;
-        this.deceleration = 0.07;
-        this.walkSpeed = 1;
-        this.runSpeed = 2.6;
-    }
-
-    keyDown(code){
-        if (this.hitbox.isGrounded()){
-            if (code == 'KeyW') {
-                if (Math.abs(this.vel.x) >= this.runSpeed - 0.1)
-                    this.vel.y = -this.jumpHeightMax;
-                else
-                    this.vel.y = -this.jumpHeightMin;
-                this.sprite.setAnimation('jump');
-            }
-        }
+        this.hitbox = null;
     }
 
     move(dx, dy){
@@ -343,7 +305,63 @@ class Player extends GameObject{
         }
     }
 
+    updateVelocities(dt){}
+    updatePhysics(dt){
+        this.move(this.vel.x, this.vel.y);
+    }
+    updateAnimations(dt){}
     update(dt) {
+        this.updateVelocities(dt);
+        this.updatePhysics(dt);
+        this.updateAnimations(dt);
+    }
+}
+
+class Player extends Entity{
+    constructor(x,y){
+        super(
+            x * TILE_SIZE, 
+            y * TILE_SIZE - (TILE_SIZE / 2)
+        );
+
+        this.hitbox = new CollisionRect(this, 10, 16);
+        this.hitbox.offset.x = 3;
+        
+        this.dir = Direction.RIGHT;
+        this.jumpHeightMin = 4;
+        this.jumpHeightMax = 4.5;
+
+        this.acceleration = 0.12;
+        this.deceleration = 0.07;
+        this.walkSpeed = 1;
+        this.runSpeed = 2.6;
+
+        this.sprite = new Sprite('images/client/mario.png');
+        this.sprite.addAnimation('idle', [{x:0,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('skid', [{x:64,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('jump', [{x:80,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('die', [{x:112,y:0,w:16,h:16}]);
+        this.sprite.addAnimation('walk', [
+            {x:16,y:0,w:16,h:16},
+            {x:32,y:0,w:16,h:16},
+            {x:48,y:0,w:16,h:16}
+        ]);
+        this.sprite.setAnimation('walk');
+    }
+
+    keyDown(code){
+        if (this.hitbox.isGrounded()){
+            if (code == 'KeyW') {
+                if (Math.abs(this.vel.x) >= this.runSpeed - 0.1)
+                    this.vel.y = -this.jumpHeightMax;
+                else
+                    this.vel.y = -this.jumpHeightMin;
+                this.sprite.setAnimation('jump');
+            }
+        }
+    }
+
+    updateVelocities(dt){
         if (isKeyDown('KeyW') && this.vel.y < 0)
             this.vel.y += JUMP_GRAVITY;
         else
@@ -375,10 +393,9 @@ class Player extends GameObject{
 
         this.vel.x += Math.sign(delta) *
             Math.min(Math.abs(delta), rate);
-        //movement
+    }
 
-        this.move(this.vel.x, this.vel.y);
-
+    updateAnimations(dt){
         if (this.sprite.animName == 'jump'){
             if (this.hitbox.isGrounded()){
                 this.sprite.setAnimation('idle');
@@ -396,6 +413,7 @@ class Player extends GameObject{
                 this.sprite.framePos += Math.abs(this.vel.x) / 8;
         }
     }
+
     draw(ctx) {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
         //this.hitbox.draw(ctx);
